@@ -1,0 +1,12 @@
+[package]
+name = "movieru"
+version = "0.1.0"
+edition = "2021"
+homepage = "https://github.com/zllak/movieru"
+repository = "https://github.com/zllak/movieru"
+keywords = ["video", "audio", "ffmpeg", "filters", "fx"]
+authors = ["Thomas Meson <zllak@hycik.org>"]
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
