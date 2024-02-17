@@ -11,3 +11,7 @@ license = "MIT"
 readme = "README.md"
 
 [dependencies]
+anyhow = { version = "1.0", default-features = false }
+
+[build-dependencies]
+anyhow = { version = "1.0", default-features = false }
