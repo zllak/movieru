@@ -2,6 +2,7 @@
 name = "movieru"
 version = "0.1.0"
 edition = "2021"
+description = "Manipulate video/audio using FFMpeg by applying filters"
 homepage = "https://github.com/zllak/movieru"
 repository = "https://github.com/zllak/movieru"
 keywords = ["video", "audio", "ffmpeg", "filters", "fx"]
