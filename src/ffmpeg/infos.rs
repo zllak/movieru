@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
-#[derive(serde::Deserialize, Debug)]
+#[derive(serde::Deserialize, Debug, Clone)]
 #[serde(tag = "codec_type")]
-enum FFMpegStream {
+pub(crate) enum FFMpegStream {
     #[serde(rename = "video")]
     Video {
         index: u8,
@@ -88,8 +88,8 @@ enum FFMpegStream {
     },
 }
 
-#[derive(serde::Deserialize, Debug)]
-struct FFMpegFormat {
+#[derive(serde::Deserialize, Debug, Clone)]
+pub(crate) struct FFMpegFormat {
     filename: String,
     nb_streams: u16,
     nb_programs: u16,
@@ -107,14 +107,15 @@ struct FFMpegFormat {
     tags: HashMap<String, String>,
 }
 
-#[derive(serde::Deserialize, Debug)]
-struct FFMpegInfos {
+#[derive(serde::Deserialize, Debug, Clone)]
+pub(crate) struct FFMpegInfos {
     streams: Vec<FFMpegStream>,
     format: FFMpegFormat,
 }
 
 impl FFMpegInfos {
-    fn from_file(path: impl Into<PathBuf>) -> anyhow::Result<Self> {
+    /// Runs ffprobe to get informations about the given file
+    pub(crate) fn from_file(path: impl Into<PathBuf>) -> anyhow::Result<Self> {
         // Non-generic inner function
         fn _from_file(path: PathBuf) -> anyhow::Result<FFMpegInfos> {
             if !path.as_path().is_file() {
@@ -144,22 +145,18 @@ impl FFMpegInfos {
 
             let out = String::from_utf8_lossy(&output.stdout);
 
-            println!("JSON: {}", out);
-
             serde_json::from_str(out.as_ref())
                 .map_err(|err| anyhow::anyhow!("unable to parse JSON: {:?}", err))
         }
 
         _from_file(path.into())
     }
-}
 
-#[cfg(test)]
-mod tests {
-    use super::FFMpegInfos;
-
-    #[test]
-    fn test() {
-        FFMpegInfos::from_file("/home/zllak/Downloads/test.mp4").unwrap();
+    /// Returns the dimensions of the video, None if there is no video stream
+    pub(crate) fn dimensions(&self) -> Option<(u16, u16)> {
+        self.streams.iter().find_map(|stream| match stream {
+            FFMpegStream::Video { width, height, .. } => Some((*width, *height)),
+            FFMpegStream::Audio { .. } => None,
+        })
     }
 }
