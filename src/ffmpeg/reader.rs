@@ -1,4 +1,5 @@
-use anyhow::{anyhow, bail};
+use crate::pixel::PixelFormat;
+use anyhow::anyhow;
 use std::io::Read;
 use std::process::ChildStdout;
 use std::{
@@ -6,18 +7,18 @@ use std::{
     process::{Command, Stdio},
 };
 
-struct RawFrame {
-    data: Vec<u8>,
-}
-
 #[derive(Debug)]
-struct FFMpegVideoReader {
+pub(crate) struct FFMpegVideoReader {
     infos: super::infos::FFMpegInfos,
+    width: u16,
+    height: u16,
+    pixel_format: PixelFormat,
     stdout: ChildStdout,
 }
 
 impl FFMpegVideoReader {
     /// Reads a video from a given file
+    /// TODO: should we allow specifying the desired pixel format ?
     pub fn from_file(path: impl Into<PathBuf>) -> anyhow::Result<Self> {
         // Non-generic inner function
         fn _from_file(path: PathBuf) -> anyhow::Result<FFMpegVideoReader> {
@@ -30,6 +31,16 @@ impl FFMpegVideoReader {
             let (width, height) = infos
                 .dimensions()
                 .ok_or(anyhow!("no dimensions found for given file"))?;
+            let pixel_format = infos.pixel_format().ok_or(anyhow!(
+                "no pixel format could be extracted from the given file"
+            ))?;
+
+            // To simplify things, for now, use rgb24 or rgba
+            let pix_fmt = if pixel_format.has_alpha_layer() {
+                "rgba"
+            } else {
+                "rgb24"
+            };
 
             let mut output = Command::new("ffmpeg")
                 .args([
@@ -44,7 +55,7 @@ impl FFMpegVideoReader {
                     "-sws_flags",
                     "bicubic", // resize algo
                     "-pix_fmt",
-                    "rgb24", // pixel format
+                    pix_fmt,
                     "-vcodec",
                     "rawvideo",
                     "-",
@@ -57,21 +68,26 @@ impl FFMpegVideoReader {
 
             let stdout = output.stdout.take().expect("cannot get stdout");
 
-            Ok(FFMpegVideoReader { infos, stdout })
+            Ok(FFMpegVideoReader {
+                infos,
+                stdout,
+                width,
+                height,
+                pixel_format,
+            })
         }
 
         _from_file(path.into())
     }
 
     /// Read a frame until the data is exhausted
-    pub fn read_frame(&mut self) -> anyhow::Result<Option<RawFrame>> {
-        let (width, height) = self
-            .infos
-            .dimensions()
-            .ok_or(anyhow!("no dimensions found for given file"))?;
-
-        // FIXME: depth is hardcoded to 3, should be 4 if there is an alpha layer
-        let frame_size = width as usize * height as usize * 3;
+    pub fn read_frame(&mut self) -> anyhow::Result<Option<Vec<u8>>> {
+        let depth = if self.pixel_format.has_alpha_layer() {
+            4
+        } else {
+            3
+        };
+        let frame_size = self.width as usize * self.height as usize * depth;
         let mut buffer = vec![0; frame_size];
 
         // FIXME: not sure read_exact is what we want here
@@ -79,7 +95,7 @@ impl FFMpegVideoReader {
             .read_exact(&mut buffer)
             .map_err(|err| anyhow!("failed to read: {:?}", err))?;
 
-        Ok(Some(RawFrame { data: buffer }))
+        Ok(Some(buffer))
     }
 }
 

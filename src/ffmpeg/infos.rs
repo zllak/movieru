@@ -1,3 +1,4 @@
+use crate::pixel::PixelFormat;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -156,6 +157,15 @@ impl FFMpegInfos {
     pub(crate) fn dimensions(&self) -> Option<(u16, u16)> {
         self.streams.iter().find_map(|stream| match stream {
             FFMpegStream::Video { width, height, .. } => Some((*width, *height)),
+            FFMpegStream::Audio { .. } => None,
+        })
+    }
+
+    /// Returns the pixel format. None if there is no video stream or if the
+    /// format is not supported.
+    pub(crate) fn pixel_format(&self) -> Option<PixelFormat> {
+        self.streams.iter().find_map(|stream| match stream {
+            FFMpegStream::Video { pix_fmt, .. } => pix_fmt.as_str().try_into().ok(),
             FFMpegStream::Audio { .. } => None,
         })
     }
