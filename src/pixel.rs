@@ -233,7 +233,7 @@ pub enum PixelFormat {
 }
 
 impl TryFrom<&str> for PixelFormat {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Ok(match value {
@@ -465,13 +465,13 @@ impl TryFrom<&str> for PixelFormat {
             "p412le" => Self::P412LE,
             "gbrap14be" => Self::GBRAP14BE,
             "gbrap14le" => Self::GBRAP14LE,
-            _ => anyhow::bail!("unknown pixel format: {:?}", value),
+            _ => eyre::bail!("unknown pixel format: {:?}", value),
         })
     }
 }
 
 impl TryFrom<String> for PixelFormat {
-    type Error = anyhow::Error;
+    type Error = eyre::Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
         TryInto::<Self>::try_into(value.to_lowercase().as_ref())

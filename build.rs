@@ -1,7 +1,7 @@
-use anyhow::bail;
+use eyre::bail;
 use std::process::Command;
 
-fn main() -> anyhow::Result<()> {
+fn main() -> eyre::Result<()> {
     if cfg!(target_os = "windows") {
         bail!("does not work on Windows yet");
     }

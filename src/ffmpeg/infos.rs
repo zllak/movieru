@@ -116,11 +116,11 @@ pub(crate) struct FFMpegInfos {
 
 impl FFMpegInfos {
     /// Runs ffprobe to get informations about the given file
-    pub(crate) fn from_file(path: impl Into<PathBuf>) -> anyhow::Result<Self> {
+    pub(crate) fn from_file(path: impl Into<PathBuf>) -> eyre::Result<Self> {
         // Non-generic inner function
-        fn _from_file(path: PathBuf) -> anyhow::Result<FFMpegInfos> {
+        fn _from_file(path: PathBuf) -> eyre::Result<FFMpegInfos> {
             if !path.as_path().is_file() {
-                anyhow::bail!("not a valid file: {:?}", path);
+                eyre::bail!("not a valid file: {:?}", path);
             }
 
             let output = Command::new("ffprobe")
@@ -132,22 +132,22 @@ impl FFMpegInfos {
                     "-show_format",
                     "-show_streams",
                     path.to_str()
-                        .ok_or(anyhow::anyhow!("path is not utf8 string"))?,
+                        .ok_or(eyre::eyre!("path is not utf8 string"))?,
                 ])
                 .stdin(Stdio::null())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::null())
                 .output()
-                .map_err(|err| anyhow::anyhow!("unable to get output: {:?}", err))?;
+                .map_err(|err| eyre::eyre!("unable to get output: {:?}", err))?;
 
             if !output.status.success() {
-                anyhow::bail!("Call to ffmpeg failed: {:?}", output.status);
+                eyre::bail!("Call to ffmpeg failed: {:?}", output.status);
             }
 
             let out = String::from_utf8_lossy(&output.stdout);
 
             serde_json::from_str(out.as_ref())
-                .map_err(|err| anyhow::anyhow!("unable to parse JSON: {:?}", err))
+                .map_err(|err| eyre::eyre!("unable to parse JSON: {:?}", err))
         }
 
         _from_file(path.into())
