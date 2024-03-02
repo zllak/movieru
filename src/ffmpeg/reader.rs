@@ -80,6 +80,11 @@ impl FFMpegVideoReader {
         _from_file(path.into())
     }
 
+    /// Returns the dimensions of the video
+    pub fn dimensions(&self) -> (u16, u16) {
+        (self.width, self.height)
+    }
+
     /// Read a frame until the data is exhausted
     pub fn read_frame(&mut self) -> Result<Option<Vec<u8>>> {
         let depth = if self.pixel_format.has_alpha_layer() {
@@ -96,17 +101,5 @@ impl FFMpegVideoReader {
             .map_err(|err| eyre!("failed to read: {:?}", err))?;
 
         Ok(Some(buffer))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::FFMpegVideoReader;
-
-    #[test]
-    fn test() {
-        let mut video = FFMpegVideoReader::from_file("/home/zllak/Downloads/test.mp4").unwrap();
-
-        while let Some(frame) = video.read_frame().unwrap() {}
     }
 }

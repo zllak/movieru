@@ -26,7 +26,7 @@ pub(crate) enum FFMpegStream {
         pix_fmt: String,
         level: u32,
         color_range: String,
-        color_space: String,
+        color_space: Option<String>,
         chroma_location: String,
         field_order: String,
         refs: u32,
