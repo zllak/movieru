@@ -85,9 +85,16 @@ mod tests {
 
     #[test]
     fn test() {
-        let mut video =
-            crate::ffmpeg::FFMpegVideoReader::from_file("/home/zllak/Downloads/test.mp4").unwrap();
-        let dimensions = video.dimensions();
+        let infos =
+            crate::ffmpeg::infos::FFMpegInfos::from_file("/home/zllak/Downloads/test.mp4").unwrap();
+        let dimensions = infos.dimensions().unwrap();
+
+        let mut video = crate::ffmpeg::FFMpegVideoReader::from_file(
+            "/home/zllak/Downloads/test.mp4",
+            dimensions,
+            infos.pixel_format().unwrap(),
+        )
+        .unwrap();
         let num_pix = dimensions.0 as usize * dimensions.1 as usize;
         println!(">>> {:?}", num_pix);
 

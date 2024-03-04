@@ -118,7 +118,7 @@ impl FFMpegInfos {
     /// Runs ffprobe to get informations about the given file
     pub(crate) fn from_file(path: impl Into<PathBuf>) -> eyre::Result<Self> {
         // Non-generic inner function
-        fn _from_file(path: PathBuf) -> eyre::Result<FFMpegInfos> {
+        let _from_file = move |path: PathBuf| -> eyre::Result<Self> {
             if !path.as_path().is_file() {
                 eyre::bail!("not a valid file: {:?}", path);
             }
@@ -148,7 +148,7 @@ impl FFMpegInfos {
 
             serde_json::from_str(out.as_ref())
                 .map_err(|err| eyre::eyre!("unable to parse JSON: {:?}", err))
-        }
+        };
 
         _from_file(path.into())
     }

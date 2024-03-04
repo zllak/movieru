@@ -1,5 +1,5 @@
 use crate::pixel::PixelFormat;
-use eyre::{eyre, Result};
+use eyre::{bail, eyre, Result};
 use std::io::Read;
 use std::process::ChildStdout;
 use std::{
@@ -9,7 +9,6 @@ use std::{
 
 #[derive(Debug)]
 pub(crate) struct FFMpegVideoReader {
-    infos: super::infos::FFMpegInfos,
     width: u16,
     height: u16,
     pixel_format: PixelFormat,
@@ -17,23 +16,19 @@ pub(crate) struct FFMpegVideoReader {
 }
 
 impl FFMpegVideoReader {
-    /// Reads a video from a given file
-    /// TODO: should we allow specifying the desired pixel format ?
-    pub fn from_file(path: impl Into<PathBuf>) -> Result<Self> {
+    /// Reads a video from a given file.
+    /// This methods does not get the video informations from FFMpeg, it uses
+    /// what is given as parameters
+    pub fn from_file(
+        path: impl Into<PathBuf>,
+        (width, height): (u16, u16),
+        pixel_format: PixelFormat,
+    ) -> Result<Self> {
         // Non-generic inner function
-        fn _from_file(path: PathBuf) -> Result<FFMpegVideoReader> {
+        let _from_file = move |path: PathBuf| -> Result<Self> {
             if !path.as_path().is_file() {
-                eyre::bail!("not a valid file: {:?}", path);
+                bail!("not a valid file: {:?}", path);
             }
-
-            let infos = super::infos::FFMpegInfos::from_file(path.clone())
-                .map_err(|err| eyre!("failed to fetch file infos: {:?}", err))?;
-            let (width, height) = infos
-                .dimensions()
-                .ok_or(eyre!("no dimensions found for given file"))?;
-            let pixel_format = infos.pixel_format().ok_or(eyre!(
-                "no pixel format could be extracted from the given file"
-            ))?;
 
             // To simplify things, for now, use rgb24 or rgba
             let pix_fmt = if pixel_format.has_alpha_layer() {
@@ -68,21 +63,15 @@ impl FFMpegVideoReader {
 
             let stdout = output.stdout.take().expect("cannot get stdout");
 
-            Ok(FFMpegVideoReader {
-                infos,
+            Ok(Self {
                 stdout,
                 width,
                 height,
                 pixel_format,
             })
-        }
+        };
 
         _from_file(path.into())
-    }
-
-    /// Returns the dimensions of the video
-    pub fn dimensions(&self) -> (u16, u16) {
-        (self.width, self.height)
     }
 
     /// Read a frame until the data is exhausted
