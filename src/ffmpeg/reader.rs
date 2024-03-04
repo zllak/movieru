@@ -20,58 +20,53 @@ impl FFMpegVideoReader {
     /// This methods does not get the video informations from FFMpeg, it uses
     /// what is given as parameters
     pub fn from_file(
-        path: impl Into<PathBuf>,
+        path: &PathBuf,
         (width, height): (u16, u16),
         pixel_format: PixelFormat,
     ) -> Result<Self> {
-        // Non-generic inner function
-        let _from_file = move |path: PathBuf| -> Result<Self> {
-            if !path.as_path().is_file() {
-                bail!("not a valid file: {:?}", path);
-            }
+        if !path.as_path().is_file() {
+            bail!("not a valid file: {:?}", path);
+        }
 
-            // To simplify things, for now, use rgb24 or rgba
-            let pix_fmt = if pixel_format.has_alpha_layer() {
-                "rgba"
-            } else {
-                "rgb24"
-            };
-
-            let mut output = Command::new("ffmpeg")
-                .args([
-                    "-i",
-                    path.to_str().ok_or(eyre!("path is not utf8 string"))?,
-                    "-loglevel",
-                    "error",
-                    "-f",
-                    "image2pipe",
-                    "-vf",
-                    format!("scale={}:{}", width, height).as_ref(),
-                    "-sws_flags",
-                    "bicubic", // resize algo
-                    "-pix_fmt",
-                    pix_fmt,
-                    "-vcodec",
-                    "rawvideo",
-                    "-",
-                ])
-                .stdin(Stdio::null())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .spawn()
-                .map_err(|err| eyre!("unable to get output: {:?}", err))?;
-
-            let stdout = output.stdout.take().expect("cannot get stdout");
-
-            Ok(Self {
-                stdout,
-                width,
-                height,
-                pixel_format,
-            })
+        // To simplify things, for now, use rgb24 or rgba
+        let pix_fmt = if pixel_format.has_alpha_layer() {
+            "rgba"
+        } else {
+            "rgb24"
         };
 
-        _from_file(path.into())
+        let mut output = Command::new("ffmpeg")
+            .args([
+                "-i",
+                path.to_str().ok_or(eyre!("path is not utf8 string"))?,
+                "-loglevel",
+                "error",
+                "-f",
+                "image2pipe",
+                "-vf",
+                format!("scale={}:{}", width, height).as_ref(),
+                "-sws_flags",
+                "bicubic", // resize algo
+                "-pix_fmt",
+                pix_fmt,
+                "-vcodec",
+                "rawvideo",
+                "-",
+            ])
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|err| eyre!("unable to get output: {:?}", err))?;
+
+        let stdout = output.stdout.take().expect("cannot get stdout");
+
+        Ok(Self {
+            stdout,
+            width,
+            height,
+            pixel_format,
+        })
     }
 
     /// Read a frame until the data is exhausted

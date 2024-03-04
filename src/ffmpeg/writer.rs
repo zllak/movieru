@@ -13,7 +13,7 @@ pub(crate) struct FFMpegVideoWriter {
 
 impl FFMpegVideoWriter {
     // Size is (width, height)
-    pub fn to_file(path: impl Into<PathBuf>, size: (u16, u16), fps: f32) -> eyre::Result<Self> {
+    pub fn to_file(path: &PathBuf, size: (u16, u16), fps: f32) -> eyre::Result<Self> {
         // Assumes a lot of things:
         // libx264 codec, medium encoding preset, rgb24 pixel format
 
@@ -38,9 +38,7 @@ impl FFMpegVideoWriter {
                 "-preset",
                 "medium",
                 // "-threads", "X"
-                path.into()
-                    .to_str()
-                    .ok_or(eyre!("path is not a utf8 string"))?,
+                path.to_str().ok_or(eyre!("path is not a utf8 string"))?,
             ])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
@@ -85,12 +83,12 @@ mod tests {
 
     #[test]
     fn test() {
-        let infos =
-            crate::ffmpeg::infos::FFMpegInfos::from_file("/home/zllak/Downloads/test.mp4").unwrap();
+        let path = "/home/zllak/Downloads/test.mp4".into();
+        let infos = crate::ffmpeg::infos::FFMpegInfos::from_file(&path).unwrap();
         let dimensions = infos.dimensions().unwrap();
 
         let mut video = crate::ffmpeg::FFMpegVideoReader::from_file(
-            "/home/zllak/Downloads/test.mp4",
+            &path,
             dimensions,
             infos.pixel_format().unwrap(),
         )
@@ -98,7 +96,7 @@ mod tests {
         let num_pix = dimensions.0 as usize * dimensions.1 as usize;
         println!(">>> {:?}", num_pix);
 
-        let mut out = FFMpegVideoWriter::to_file("/tmp/outputtest.mp4", dimensions, 30f32).unwrap();
+        let mut out = FFMpegVideoWriter::to_file(&path, dimensions, 30f32).unwrap();
 
         let start = Instant::now();
         while let Ok(Some(mut frame)) = video.read_frame() {
