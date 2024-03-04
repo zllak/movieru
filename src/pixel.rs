@@ -1,5 +1,5 @@
 /// Pixel format. Should have the most common one.
-#[allow(clippy::upper_case_acronyms)]
+#[allow(clippy::upper_case_acronyms, non_camel_case_types)]
 #[derive(Debug, Clone)]
 pub enum PixelFormat {
     YUV420P,

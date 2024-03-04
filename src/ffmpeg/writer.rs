@@ -13,7 +13,7 @@ pub(crate) struct FFMpegVideoWriter {
 
 impl FFMpegVideoWriter {
     // Size is (width, height)
-    pub fn to_file(path: &PathBuf, size: (u16, u16), fps: f32) -> eyre::Result<Self> {
+    pub fn to_file(path: &PathBuf, (width, height): (u16, u16), fps: f32) -> eyre::Result<Self> {
         // Assumes a lot of things:
         // libx264 codec, medium encoding preset, rgb24 pixel format
 
@@ -25,7 +25,7 @@ impl FFMpegVideoWriter {
                 "-f",
                 "rawvideo",
                 "-s",
-                format!("{}x{}", size.0, size.1).as_str(),
+                format!("{}x{}", width, height).as_str(),
                 "-pix_fmt",
                 "rgb24",
                 "-r",
@@ -72,49 +72,5 @@ impl FFMpegVideoWriter {
                 stderr
             ))
         })
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use std::time::Instant;
-
-    use super::*;
-
-    #[test]
-    fn test() {
-        let path = "/home/zllak/Downloads/test.mp4".into();
-        let infos = crate::ffmpeg::infos::FFMpegInfos::from_file(&path).unwrap();
-        let dimensions = infos.dimensions().unwrap();
-
-        let mut video = crate::ffmpeg::FFMpegVideoReader::from_file(
-            &path,
-            dimensions,
-            infos.pixel_format().unwrap(),
-        )
-        .unwrap();
-        let num_pix = dimensions.0 as usize * dimensions.1 as usize;
-        println!(">>> {:?}", num_pix);
-
-        let mut out = FFMpegVideoWriter::to_file(&path, dimensions, 30f32).unwrap();
-
-        let start = Instant::now();
-        while let Ok(Some(mut frame)) = video.read_frame() {
-            // Grayscale
-            // R * 0.3 + G * 0.59 + B * 0.11
-            let raw: &mut [u8] = &mut frame;
-            for i in 0..num_pix {
-                let i = i * 3;
-                let gray = (raw[i] as f32 * 0.3) as u8
-                    + (raw[i + 1] as f32 * 0.59) as u8
-                    + (raw[i + 2] as f32 * 0.11) as u8;
-                raw[i] = gray;
-                raw[i + 1] = gray;
-                raw[i + 2] = gray;
-            }
-
-            out.write_frame(frame).unwrap();
-        }
-        println!("took: {:?}", start.elapsed());
     }
 }

@@ -5,6 +5,7 @@ use std::process::{Command, Stdio};
 
 #[derive(serde::Deserialize, Debug, Clone)]
 #[serde(tag = "codec_type")]
+#[allow(dead_code)]
 pub(crate) enum FFMpegStream {
     #[serde(rename = "video")]
     Video {
@@ -21,11 +22,11 @@ pub(crate) enum FFMpegStream {
         closed_captions: u16,
         film_grain: u32,
         has_b_frames: u32,
-        sample_aspect_ratio: String, // make some kind of aspect ratio struct?
-        display_aspect_ratio: String,
+        sample_aspect_ratio: Option<String>, // make some kind of aspect ratio struct?
+        display_aspect_ratio: Option<String>,
         pix_fmt: String,
         level: u32,
-        color_range: String,
+        color_range: Option<String>,
         color_space: Option<String>,
         chroma_location: String,
         field_order: String,
@@ -90,6 +91,7 @@ pub(crate) enum FFMpegStream {
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct FFMpegFormat {
     filename: String,
     nb_streams: u16,
@@ -109,6 +111,7 @@ pub(crate) struct FFMpegFormat {
 }
 
 #[derive(serde::Deserialize, Debug, Clone)]
+#[allow(dead_code)]
 pub(crate) struct FFMpegInfos {
     streams: Vec<FFMpegStream>,
     format: FFMpegFormat,
@@ -161,6 +164,26 @@ impl FFMpegInfos {
     pub(crate) fn pixel_format(&self) -> Option<PixelFormat> {
         self.streams.iter().find_map(|stream| match stream {
             FFMpegStream::Video { pix_fmt, .. } => pix_fmt.as_str().try_into().ok(),
+            FFMpegStream::Audio { .. } => None,
+        })
+    }
+
+    /// Returns the number of frames per second. None if there is no video stream.
+    pub(crate) fn fps(&self) -> Option<f32> {
+        self.streams.iter().find_map(|stream| match stream {
+            FFMpegStream::Video {
+                duration,
+                nb_frames,
+                ..
+            } => Some(*nb_frames as f32 / *duration),
+            FFMpegStream::Audio { .. } => None,
+        })
+    }
+
+    /// Returns the duration in seconds. None if there is no video stream.
+    pub(crate) fn duration(&self) -> Option<f32> {
+        self.streams.iter().find_map(|stream| match stream {
+            FFMpegStream::Video { duration, .. } => Some(*duration),
             FFMpegStream::Audio { .. } => None,
         })
     }
