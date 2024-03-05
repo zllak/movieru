@@ -3,6 +3,7 @@ use std::slice::{ChunksExact, ChunksExactMut};
 pub trait Pixel {
     type ChannelType;
     const CHANNELS: u8;
+    const NAME: &'static str;
 
     fn from_slice(slice: &[Self::ChannelType]) -> &Self;
     fn from_slice_mut(slice: &mut [Self::ChannelType]) -> &mut Self;
@@ -17,6 +18,7 @@ impl<T> Pixel for Rgb<T> {
     type ChannelType = T;
 
     const CHANNELS: u8 = 3;
+    const NAME: &'static str = "rgb24";
 
     fn from_slice(slice: &[T]) -> &Self {
         assert_eq!(slice.len(), Self::CHANNELS as usize);
