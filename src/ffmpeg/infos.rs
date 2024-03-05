@@ -15,8 +15,8 @@ pub(crate) enum FFMpegStream {
         profile: String,
         codec_tag_string: String,
         codec_tag: String,
-        width: u16,
-        height: u16,
+        width: u32,
+        height: u32,
         coded_width: u16,
         coded_height: u16,
         closed_captions: u16,
@@ -152,7 +152,7 @@ impl FFMpegInfos {
     }
 
     /// Returns the dimensions of the video, None if there is no video stream
-    pub(crate) fn dimensions(&self) -> Option<(u16, u16)> {
+    pub(crate) fn dimensions(&self) -> Option<(u32, u32)> {
         self.streams.iter().find_map(|stream| match stream {
             FFMpegStream::Video { width, height, .. } => Some((*width, *height)),
             FFMpegStream::Audio { .. } => None,

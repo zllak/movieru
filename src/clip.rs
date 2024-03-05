@@ -10,7 +10,7 @@ pub struct Clip {
     infos: ffmpeg::FFMpegInfos,
     pixel_format: PixelFormat,
     duration: Duration,
-    dimensions: (u16, u16),
+    dimensions: (u32, u32),
     fps: f32,
 }
 
@@ -52,11 +52,7 @@ impl Clip {
             self.pixel_format.clone(),
         )?;
 
-        Ok(IterFrame::new(
-            reader,
-            (self.dimensions.0 as usize) * (self.dimensions.1 as usize),
-            self.pixel_format,
-        ))
+        Ok(IterFrame::new(reader, self.dimensions))
     }
 }
 

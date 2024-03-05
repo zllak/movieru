@@ -13,7 +13,7 @@ pub(crate) struct FFMpegVideoWriter {
 
 impl FFMpegVideoWriter {
     // Size is (width, height)
-    pub fn to_file(path: &PathBuf, (width, height): (u16, u16), fps: f32) -> eyre::Result<Self> {
+    pub fn to_file(path: &PathBuf, (width, height): (u32, u32), fps: f32) -> eyre::Result<Self> {
         // Assumes a lot of things:
         // libx264 codec, medium encoding preset, rgb24 pixel format
 

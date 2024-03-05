@@ -9,8 +9,8 @@ use std::{
 
 #[derive(Debug)]
 pub(crate) struct FFMpegVideoReader {
-    width: u16,
-    height: u16,
+    width: u32,
+    height: u32,
     pixel_format: PixelFormat,
     stdout: ChildStdout,
 }
@@ -21,7 +21,7 @@ impl FFMpegVideoReader {
     /// what is given as parameters
     pub fn from_file(
         path: &PathBuf,
-        (width, height): (u16, u16),
+        (width, height): (u32, u32),
         pixel_format: PixelFormat,
     ) -> Result<Self> {
         if !path.as_path().is_file() {
@@ -29,7 +29,7 @@ impl FFMpegVideoReader {
         }
 
         // To simplify things, for now, use rgb24 or rgba
-        let pix_fmt = if pixel_format.has_alpha_layer() {
+        let pix_fmt = if pixel_format.channels() == 4 {
             "rgba"
         } else {
             "rgb24"
@@ -71,12 +71,8 @@ impl FFMpegVideoReader {
 
     /// Read a frame until the data is exhausted
     pub fn read_frame(&mut self) -> Result<Option<Vec<u8>>> {
-        let depth = if self.pixel_format.has_alpha_layer() {
-            4
-        } else {
-            3
-        };
-        let frame_size = self.width as usize * self.height as usize * depth;
+        let depth = self.pixel_format.channels();
+        let frame_size = self.width as usize * self.height as usize * depth as usize;
         let mut buffer = vec![0; frame_size];
 
         // FIXME: not sure read_exact is what we want here
