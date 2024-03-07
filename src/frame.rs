@@ -1,59 +1,4 @@
-use std::slice::{ChunksExact, ChunksExactMut};
-
-pub trait Pixel {
-    type ChannelType;
-    const CHANNELS: u8;
-    const NAME: &'static str;
-
-    fn from_slice(slice: &[Self::ChannelType]) -> &Self;
-    fn from_slice_mut(slice: &mut [Self::ChannelType]) -> &mut Self;
-}
-
-// ----------------------------------------------------------------------------
-
-#[repr(C)]
-pub struct Rgb<T>(pub [T; 3]);
-
-impl<T> Pixel for Rgb<T> {
-    type ChannelType = T;
-
-    const CHANNELS: u8 = 3;
-    const NAME: &'static str = "rgb24";
-
-    fn from_slice(slice: &[T]) -> &Self {
-        assert_eq!(slice.len(), Self::CHANNELS as usize);
-        unsafe { &*(slice.as_ptr() as *const Self) }
-    }
-
-    fn from_slice_mut(slice: &mut [T]) -> &mut Self {
-        assert_eq!(slice.len(), Self::CHANNELS as usize);
-        unsafe { &mut *(slice.as_ptr() as *mut Self) }
-    }
-}
-
-// ----------------------------------------------------------------------------
-
-pub struct PixelsMut<'a, P>
-where
-    P: Pixel + 'a,
-{
-    chunks_mut: ChunksExactMut<'a, P::ChannelType>,
-}
-
-impl<'a, P> Iterator for PixelsMut<'a, P>
-where
-    P: Pixel + 'a,
-{
-    type Item = &'a mut P;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.chunks_mut
-            .next()
-            .map(|chunk| <P as Pixel>::from_slice_mut(chunk))
-    }
-}
-
-// ----------------------------------------------------------------------------
+use crate::{Pixel, Pixels, PixelsMut, Rgb};
 
 pub struct Frame<P>
 where
@@ -77,17 +22,23 @@ where
         }
     }
 
-    pub fn pixels(&self) -> ChunksExact<'_, <P as Pixel>::ChannelType> {
+    pub fn pixels(&self) -> Pixels<'_, P> {
         let channels = P::CHANNELS as usize;
-        let raw_pixels = &self.data[..(self.width * self.height) as usize * channels];
-        raw_pixels.chunks_exact(channels)
+        let size_hint = (self.width * self.height) as usize;
+        let raw_pixels = &self.data[..size_hint * channels];
+        Pixels {
+            chunks: raw_pixels.chunks_exact(channels),
+            size_hint,
+        }
     }
 
     pub fn pixels_mut(&mut self) -> PixelsMut<'_, P> {
         let channels = P::CHANNELS as usize;
-        let raw_pixels = &mut self.data[..(self.width * self.height) as usize * channels];
+        let size_hint = (self.width * self.height) as usize;
+        let raw_pixels = &mut self.data[..size_hint * channels];
         PixelsMut {
             chunks_mut: raw_pixels.chunks_exact_mut(channels),
+            size_hint,
         }
     }
 
@@ -111,17 +62,20 @@ pub struct IterFrame {
     reader: crate::ffmpeg::FFMpegVideoReader,
     width: u32,
     height: u32,
+    nb_frames: usize,
 }
 
 impl IterFrame {
     pub(crate) fn new(
         reader: crate::ffmpeg::FFMpegVideoReader,
         (width, height): (u32, u32),
+        nb_frames: usize,
     ) -> Self {
         Self {
             reader,
             width,
             height,
+            nb_frames,
         }
     }
 }
@@ -134,5 +88,9 @@ impl Iterator for IterFrame {
             .read_frame()
             .ok()?
             .map(|raw_frame| Frame::from_vec(raw_frame, (self.width, self.height)))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        (self.nb_frames, Some(self.nb_frames))
     }
 }

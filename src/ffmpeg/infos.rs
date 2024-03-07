@@ -1,4 +1,4 @@
-use crate::pixel::PixelFormat;
+use crate::{Pixel, Rgb, Yuv420p};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -159,11 +159,20 @@ impl FFMpegInfos {
         })
     }
 
-    /// Returns the pixel format. None if there is no video stream or if the
-    /// format is not supported.
-    pub(crate) fn pixel_format(&self) -> Option<PixelFormat> {
+    /// Returns the right Pixel tuple of name and pixel depth
+    // TODO: the depth should be strong typed
+    pub(crate) fn pixel(&self) -> Option<(&'static str, u8)> {
         self.streams.iter().find_map(|stream| match stream {
-            FFMpegStream::Video { pix_fmt, .. } => pix_fmt.as_str().try_into().ok(),
+            FFMpegStream::Video { pix_fmt, .. } => match pix_fmt.as_str() {
+                <Rgb<u8> as Pixel>::NAME => {
+                    Some((<Rgb<u8> as Pixel>::NAME, <Rgb<u8> as Pixel>::CHANNELS))
+                }
+                <Yuv420p<u8> as Pixel>::NAME => Some((
+                    <Yuv420p<u8> as Pixel>::NAME,
+                    <Yuv420p<u8> as Pixel>::CHANNELS,
+                )),
+                _ => None,
+            },
             FFMpegStream::Audio { .. } => None,
         })
     }
@@ -176,6 +185,14 @@ impl FFMpegInfos {
                 nb_frames,
                 ..
             } => Some(*nb_frames as f32 / *duration),
+            FFMpegStream::Audio { .. } => None,
+        })
+    }
+
+    /// Returns the number of frames in the video strea. None if there is no video stream.
+    pub(crate) fn nb_frames(&self) -> Option<usize> {
+        self.streams.iter().find_map(|stream| match stream {
+            FFMpegStream::Video { nb_frames, .. } => Some(*nb_frames as usize),
             FFMpegStream::Audio { .. } => None,
         })
     }

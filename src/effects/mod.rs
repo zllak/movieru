@@ -1,4 +1,5 @@
-use crate::{frame::Rgb, Frame};
+use crate::{Frame, Rgb};
+
 mod grayscale;
 use self::grayscale::Grayscale;
 

@@ -1,8 +1,8 @@
 mod infos;
-pub(crate) use self::infos::FFMpegInfos;
+pub(super) use self::infos::FFMpegInfos;
 
 mod reader;
-pub(crate) use self::reader::FFMpegVideoReader;
+pub(super) use self::reader::FFMpegVideoReader;
 
 mod writer;
-pub(crate) use self::writer::FFMpegVideoWriter;
+pub(super) use self::writer::FFMpegVideoWriter;

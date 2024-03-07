@@ -1,4 +1,4 @@
-use crate::{frame::Rgb, Frame};
+use crate::{Frame, Rgb};
 
 /// Transform an image to a grayscale version of it
 pub struct Grayscale<I> {

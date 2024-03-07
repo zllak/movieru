@@ -1,4 +1,4 @@
-use crate::{ffmpeg, frame::IterFrame, pixel::PixelFormat};
+use crate::{ffmpeg, frame::IterFrame};
 use eyre::eyre;
 use std::{path::PathBuf, time::Duration};
 
@@ -8,10 +8,11 @@ pub struct Clip {
     // Clip informations
     // TODO: create a ClipMetadata to encapsulate everything
     infos: ffmpeg::FFMpegInfos,
-    pixel_format: PixelFormat,
     duration: Duration,
     dimensions: (u32, u32),
     fps: f32,
+    pixel_depth: u8,
+    nb_frames: usize,
 }
 
 impl Clip {
@@ -28,8 +29,9 @@ impl Clip {
                 .ok_or(eyre!("no video dimensions found"))?;
             let duration =
                 Duration::from_secs_f32(infos.duration().ok_or(eyre!("no video duration found"))?);
-            let pixel_format = infos.pixel_format().ok_or(eyre!("no pixel format found"))?;
+            let (_, pixel_depth) = infos.pixel().ok_or(eyre!("no pixel format found"))?;
             let fps = infos.fps().ok_or(eyre!("no video fps found"))?;
+            let nb_frames = infos.nb_frames().ok_or(eyre!("no video nb frames found"))?;
 
             Ok(Self {
                 path,
@@ -37,7 +39,8 @@ impl Clip {
                 duration,
                 dimensions,
                 fps,
-                pixel_format,
+                pixel_depth,
+                nb_frames,
             })
         };
 
@@ -46,13 +49,10 @@ impl Clip {
 
     /// Iter on all the frames of the video.
     pub fn iter_frames(self) -> eyre::Result<IterFrame> {
-        let reader = ffmpeg::FFMpegVideoReader::from_file(
-            &self.path,
-            self.dimensions,
-            self.pixel_format.clone(),
-        )?;
+        let reader =
+            ffmpeg::FFMpegVideoReader::from_file(&self.path, self.dimensions, self.pixel_depth)?;
 
-        Ok(IterFrame::new(reader, self.dimensions))
+        Ok(IterFrame::new(reader, self.dimensions, self.nb_frames))
     }
 }
 

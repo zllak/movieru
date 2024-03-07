@@ -1,4 +1,4 @@
-use crate::pixel::PixelFormat;
+use crate::Pixel;
 use eyre::{bail, eyre, Result};
 use std::io::Read;
 use std::process::ChildStdout;
@@ -11,29 +11,20 @@ use std::{
 pub(crate) struct FFMpegVideoReader {
     width: u32,
     height: u32,
-    pixel_format: PixelFormat,
     stdout: ChildStdout,
+    pixel_depth: u8,
 }
 
 impl FFMpegVideoReader {
     /// Reads a video from a given file.
     /// This methods does not get the video informations from FFMpeg, it uses
     /// what is given as parameters
-    pub fn from_file(
-        path: &PathBuf,
-        (width, height): (u32, u32),
-        pixel_format: PixelFormat,
-    ) -> Result<Self> {
+    pub fn from_file(path: &PathBuf, (width, height): (u32, u32), pixel_depth: u8) -> Result<Self> {
         if !path.as_path().is_file() {
             bail!("not a valid file: {:?}", path);
         }
 
-        // To simplify things, for now, use rgb24 or rgba
-        let pix_fmt = if pixel_format.channels() == 4 {
-            "rgba"
-        } else {
-            "rgb24"
-        };
+        let pix_fmt = if pixel_depth == 3 { "rgb24" } else { "rgba" };
 
         let mut output = Command::new("ffmpeg")
             .args([
@@ -65,14 +56,13 @@ impl FFMpegVideoReader {
             stdout,
             width,
             height,
-            pixel_format,
+            pixel_depth,
         })
     }
 
     /// Read a frame until the data is exhausted
     pub fn read_frame(&mut self) -> Result<Option<Vec<u8>>> {
-        let depth = self.pixel_format.channels();
-        let frame_size = self.width as usize * self.height as usize * depth as usize;
+        let frame_size = self.width as usize * self.height as usize * self.pixel_depth as usize;
         let mut buffer = vec![0; frame_size];
 
         // FIXME: not sure read_exact is what we want here
