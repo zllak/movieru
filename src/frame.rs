@@ -14,7 +14,12 @@ where
     P: Pixel,
 {
     pub fn from_vec(data: Vec<<P as Pixel>::ChannelType>, (width, height): (u32, u32)) -> Self {
-        // TODO: make sure buffer is big enough for the given size
+        assert_eq!(
+            data.capacity(),
+            (width * height * <P as Pixel>::CHANNELS as u32) as usize,
+            "buffer is too small"
+        );
+
         Self {
             data,
             width,
@@ -40,6 +45,15 @@ where
             chunks_mut: raw_pixels.chunks_exact_mut(channels),
             size_hint,
         }
+    }
+
+    /// Returns the raw buffer
+    /// TODO: this is not ideal, we can do better
+    pub fn raw(&self) -> Vec<<P as Pixel>::ChannelType>
+    where
+        <P as Pixel>::ChannelType: Clone,
+    {
+        self.data[..].to_vec()
     }
 
     /// Transforms the current frame using the given function.
@@ -84,6 +98,7 @@ impl Iterator for IterFrame {
     type Item = Frame<Rgb<u8>>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        // FIXME: here we silently ignore errors, we might want to change that
         self.reader
             .read_frame()
             .ok()?

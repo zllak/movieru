@@ -13,21 +13,32 @@ pub(crate) struct FFMpegVideoReader {
     height: u32,
     stdout: ChildStdout,
     pixel_depth: u8,
+    max_nb_frames: u32, // maximum number of frames to read
+    current_frame: u32, // when reading, the current frame number handled
 }
 
 impl FFMpegVideoReader {
     /// Reads a video from a given file.
     /// This methods does not get the video informations from FFMpeg, it uses
     /// what is given as parameters
-    pub fn from_file(path: &PathBuf, (width, height): (u32, u32), pixel_depth: u8) -> Result<Self> {
+    pub fn from_file(
+        path: &PathBuf,
+        (width, height): (u32, u32),
+        pixel_depth: u8,
+        start: String,
+        max_nb_frames: u32,
+    ) -> Result<Self> {
         if !path.as_path().is_file() {
             bail!("not a valid file: {:?}", path);
         }
 
         let pix_fmt = if pixel_depth == 3 { "rgb24" } else { "rgba" };
+        let start = start.as_ref();
 
         let mut output = Command::new("ffmpeg")
             .args([
+                "-ss",
+                start,
                 "-i",
                 path.to_str().ok_or(eyre!("path is not utf8 string"))?,
                 "-loglevel",
@@ -57,11 +68,18 @@ impl FFMpegVideoReader {
             width,
             height,
             pixel_depth,
+            max_nb_frames,
+            current_frame: 0,
         })
     }
 
     /// Read a frame until the data is exhausted
     pub fn read_frame(&mut self) -> Result<Option<Vec<u8>>> {
+        // If we have hit the frame limit, stop reading
+        if self.current_frame >= self.max_nb_frames {
+            return Ok(None);
+        }
+
         let frame_size = self.width as usize * self.height as usize * self.pixel_depth as usize;
         let mut buffer = vec![0; frame_size];
 
@@ -69,6 +87,8 @@ impl FFMpegVideoReader {
         self.stdout
             .read_exact(&mut buffer)
             .map_err(|err| eyre!("failed to read: {:?}", err))?;
+
+        self.current_frame += 1;
 
         Ok(Some(buffer))
     }

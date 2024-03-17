@@ -20,9 +20,13 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|frame| {
             frame.transform(|pixel| {
-                pixel.0[0] = (pixel.0[0] as f32 * 0.3) as u8;
-                pixel.0[1] = (pixel.0[1] as f32 * 0.59) as u8;
-                pixel.0[2] = (pixel.0[2] as f32 * 0.11) as u8;
+                let value = (pixel.0[0] as f32 * 0.3) as u8
+                    + (pixel.0[1] as f32 * 0.59) as u8
+                    + (pixel.0[2] as f32 * 0.11) as u8;
+
+                pixel.0[0] = value;
+                pixel.0[1] = value;
+                pixel.0[2] = value;
             })
         })
     }
