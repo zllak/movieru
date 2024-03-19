@@ -1,4 +1,3 @@
-use crate::Pixel;
 use eyre::{bail, eyre, Result};
 use std::io::Read;
 use std::process::ChildStdout;

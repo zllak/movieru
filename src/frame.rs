@@ -1,10 +1,10 @@
-use crate::{Pixel, Pixels, PixelsMut, Rgb};
+use image::{ImageBuffer, Pixel, Rgb};
 
 pub struct Frame<P>
 where
     P: Pixel,
 {
-    data: Vec<<P as Pixel>::ChannelType>,
+    data: ImageBuffer<P, Vec<P::Subpixel>>,
     width: u32,
     height: u32,
 }
@@ -13,12 +13,9 @@ impl<P> Frame<P>
 where
     P: Pixel,
 {
-    pub fn from_vec(data: Vec<<P as Pixel>::ChannelType>, (width, height): (u32, u32)) -> Self {
-        assert_eq!(
-            data.capacity(),
-            (width * height * <P as Pixel>::CHANNELS as u32) as usize,
-            "buffer is too small"
-        );
+    pub fn from_vec(data: Vec<<P as Pixel>::Subpixel>, (width, height): (u32, u32)) -> Self {
+        let data =
+            ImageBuffer::from_raw(width, height, data).expect("cannot instanciate image buffer");
 
         Self {
             data,
@@ -27,33 +24,10 @@ where
         }
     }
 
-    pub fn pixels(&self) -> Pixels<'_, P> {
-        let channels = P::CHANNELS as usize;
-        let size_hint = (self.width * self.height) as usize;
-        let raw_pixels = &self.data[..size_hint * channels];
-        Pixels {
-            chunks: raw_pixels.chunks_exact(channels),
-            size_hint,
-        }
-    }
-
-    pub fn pixels_mut(&mut self) -> PixelsMut<'_, P> {
-        let channels = P::CHANNELS as usize;
-        let size_hint = (self.width * self.height) as usize;
-        let raw_pixels = &mut self.data[..size_hint * channels];
-        PixelsMut {
-            chunks_mut: raw_pixels.chunks_exact_mut(channels),
-            size_hint,
-        }
-    }
-
     /// Returns the raw buffer
     /// TODO: this is not ideal, we can do better
-    pub fn raw(&self) -> Vec<<P as Pixel>::ChannelType>
-    where
-        <P as Pixel>::ChannelType: Clone,
-    {
-        self.data[..].to_vec()
+    pub fn as_raw(&self) -> &Vec<<P as Pixel>::Subpixel> {
+        self.data.as_raw()
     }
 
     /// Transforms the current frame using the given function.
@@ -62,11 +36,20 @@ where
     where
         F: Fn(&mut P),
     {
-        for pixel in self.pixels_mut() {
+        for pixel in self.data.pixels_mut() {
             func(pixel);
         }
 
         self
+    }
+
+    // DO NOT USE, just to test something
+    fn grayscale(self) -> Frame<image::Luma<<P as Pixel>::Subpixel>>
+    where
+        P: Pixel,
+    {
+        let gray = image::imageops::grayscale(&self.data);
+        Frame::from_vec(gray.into_raw(), (self.width, self.height))
     }
 }
 

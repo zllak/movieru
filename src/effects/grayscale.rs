@@ -1,4 +1,7 @@
-use crate::{Frame, Rgb};
+use crate::Frame;
+use image::Rgb;
+
+// TODO: this has a massive performance impact.
 
 /// Transform an image to a grayscale version of it
 pub struct Grayscale<I> {

@@ -117,15 +117,26 @@ impl Clip {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::EffectsExt;
-    use std::time::Instant;
+    use crate::{ffmpeg::FFMpegVideoWriter, EffectsExt};
+    use std::{path::Path, time::Instant};
 
     #[test]
     fn test() {
         let clip = Clip::from_file("/home/zllak/Downloads/test.mp4").unwrap();
+        let out_path = Path::new("/tmp/out.mp4");
+        let mut out =
+            FFMpegVideoWriter::to_file(&out_path.into(), clip.dimensions, clip.fps).unwrap();
 
         let now = Instant::now();
-        let count = clip.iter_frames().unwrap().grayscale().count();
-        println!("COUNTED {:?} FRAMES in {:?}", count, now.elapsed());
+        for frame in clip
+            .subclip(TimeDuration::new(00, 00, 10), TimeDuration::new(00, 00, 10))
+            .unwrap()
+            .iter_frames()
+            .unwrap()
+            .grayscale()
+        {
+            out.write_frame(frame.as_raw()).unwrap();
+        }
+        //println!("COUNTED {:?} FRAMES in {:?}", count, now.elapsed());
     }
 }

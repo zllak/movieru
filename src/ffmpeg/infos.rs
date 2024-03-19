@@ -1,4 +1,3 @@
-use crate::{Pixel, Rgb, Yuv420p};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -164,13 +163,8 @@ impl FFMpegInfos {
     pub(crate) fn pixel(&self) -> Option<(&'static str, u8)> {
         self.streams.iter().find_map(|stream| match stream {
             FFMpegStream::Video { pix_fmt, .. } => match pix_fmt.as_str() {
-                <Rgb<u8> as Pixel>::NAME => {
-                    Some((<Rgb<u8> as Pixel>::NAME, <Rgb<u8> as Pixel>::CHANNELS))
-                }
-                <Yuv420p<u8> as Pixel>::NAME => Some((
-                    <Yuv420p<u8> as Pixel>::NAME,
-                    <Yuv420p<u8> as Pixel>::CHANNELS,
-                )),
+                "rgb24" => Some(("rgb24", 3)),
+                "yuv420p" => Some(("yuv420p", 3)),
                 _ => None,
             },
             FFMpegStream::Audio { .. } => None,

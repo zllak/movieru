@@ -53,8 +53,8 @@ impl FFMpegVideoWriter {
     }
 
     /// Write a frame to the output file
-    pub fn write_frame(&mut self, frame: Vec<u8>) -> eyre::Result<()> {
-        self.stdin.write_all(frame.as_ref()).or_else(|err| {
+    pub fn write_frame(&mut self, frame: &[u8]) -> eyre::Result<()> {
+        self.stdin.write_all(frame).or_else(|err| {
             // Got an error, read stderr
             let mut stderr = String::new();
             loop {
