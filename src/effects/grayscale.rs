@@ -1,5 +1,5 @@
 use crate::Frame;
-use image::Rgb;
+use image::{Luma, Rgb};
 
 // TODO: this has a massive performance impact.
 
@@ -18,7 +18,7 @@ impl<I> Iterator for Grayscale<I>
 where
     I: Iterator<Item = Frame<Rgb<u8>>>,
 {
-    type Item = I::Item;
+    type Item = Frame<Luma<u8>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next().map(|frame| {
@@ -27,9 +27,7 @@ where
                     + (pixel.0[1] as f32 * 0.59) as u8
                     + (pixel.0[2] as f32 * 0.11) as u8;
 
-                pixel.0[0] = value;
-                pixel.0[1] = value;
-                pixel.0[2] = value;
+                Luma::from([value])
             })
         })
     }

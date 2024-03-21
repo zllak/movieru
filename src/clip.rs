@@ -125,7 +125,8 @@ mod tests {
         let clip = Clip::from_file("/home/zllak/Downloads/test.mp4").unwrap();
         let out_path = Path::new("/tmp/out.mp4");
         let mut out =
-            FFMpegVideoWriter::to_file(&out_path.into(), clip.dimensions, clip.fps).unwrap();
+            FFMpegVideoWriter::to_file(&out_path.into(), clip.dimensions, clip.fps, "gray")
+                .unwrap();
 
         let now = Instant::now();
         for frame in clip

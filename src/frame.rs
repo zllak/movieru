@@ -31,16 +31,18 @@ where
     }
 
     /// Transforms the current frame using the given function.
-    /// Only assumes rgb24 for now, and does not try to be smart when transforming.
-    pub fn transform<F>(mut self, func: F) -> Self
+    pub fn transform<F, O>(self, func: F) -> Frame<O>
     where
-        F: Fn(&mut P),
+        F: Fn(&P) -> O,
+        O: Pixel<Subpixel = P::Subpixel>,
     {
-        for pixel in self.data.pixels_mut() {
-            func(pixel);
+        let mut buffer = Vec::with_capacity(self.data.len());
+
+        for pixel in self.data.pixels() {
+            buffer.extend(func(pixel).channels());
         }
 
-        self
+        Frame::from_vec(buffer, (self.width, self.height))
     }
 
     // DO NOT USE, just to test something

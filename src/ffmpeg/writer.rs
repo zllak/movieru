@@ -13,7 +13,14 @@ pub(crate) struct FFMpegVideoWriter {
 
 impl FFMpegVideoWriter {
     // Size is (width, height)
-    pub fn to_file(path: &PathBuf, (width, height): (u32, u32), fps: f32) -> eyre::Result<Self> {
+    // XXX: take the pix_fmt as str for now, we must infer this fro the
+    // Pixel in the frame.
+    pub fn to_file(
+        path: &PathBuf,
+        (width, height): (u32, u32),
+        fps: f32,
+        pix_fmt: &'static str,
+    ) -> eyre::Result<Self> {
         // Assumes a lot of things:
         // libx264 codec, medium encoding preset, rgb24 pixel format
 
@@ -27,7 +34,7 @@ impl FFMpegVideoWriter {
                 "-s",
                 format!("{}x{}", width, height).as_str(),
                 "-pix_fmt",
-                "rgb24",
+                pix_fmt,
                 "-r",
                 format!("{:.2}", fps).as_str(),
                 "-an",
