@@ -118,7 +118,7 @@ impl Clip {
 mod tests {
     use super::*;
     use crate::{ffmpeg::FFMpegVideoWriter, EffectsExt};
-    use std::{path::Path, time::Instant};
+    use std::path::Path;
 
     #[test]
     fn test() {
@@ -128,9 +128,8 @@ mod tests {
             FFMpegVideoWriter::to_file(&out_path.into(), clip.dimensions, clip.fps, "gray")
                 .unwrap();
 
-        let now = Instant::now();
         for frame in clip
-            .subclip(TimeDuration::new(00, 00, 10), TimeDuration::new(00, 00, 10))
+            .subclip(TimeDuration::new(00, 00, 20), TimeDuration::new(00, 00, 12))
             .unwrap()
             .iter_frames()
             .unwrap()

@@ -44,15 +44,6 @@ where
 
         Frame::from_vec(buffer, (self.width, self.height))
     }
-
-    // DO NOT USE, just to test something
-    fn grayscale(self) -> Frame<image::Luma<<P as Pixel>::Subpixel>>
-    where
-        P: Pixel,
-    {
-        let gray = image::imageops::grayscale(&self.data);
-        Frame::from_vec(gray.into_raw(), (self.width, self.height))
-    }
 }
 
 // ----------------------------------------------------------------------------
