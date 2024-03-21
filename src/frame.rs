@@ -1,4 +1,5 @@
-use image::{ImageBuffer, Pixel, Rgb};
+use image::{ImageBuffer, Pixel};
+use std::marker::PhantomData;
 
 pub struct Frame<P>
 where
@@ -66,14 +67,15 @@ where
 
 // ----------------------------------------------------------------------------
 
-pub struct IterFrame {
+pub struct IterFrame<P> {
     reader: crate::ffmpeg::FFMpegVideoReader,
     width: u32,
     height: u32,
     nb_frames: usize,
+    _phantom: PhantomData<P>,
 }
 
-impl IterFrame {
+impl<P> IterFrame<P> {
     pub(crate) fn new(
         reader: crate::ffmpeg::FFMpegVideoReader,
         (width, height): (u32, u32),
@@ -84,12 +86,13 @@ impl IterFrame {
             width,
             height,
             nb_frames,
+            _phantom: PhantomData,
         }
     }
 }
 
-impl Iterator for IterFrame {
-    type Item = Frame<Rgb<u8>>;
+impl<P: Pixel<Subpixel = u8>> Iterator for IterFrame<P> {
+    type Item = Frame<P>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // FIXME: here we silently ignore errors, we might want to change that

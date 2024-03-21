@@ -1,6 +1,7 @@
 use crate::{ffmpeg, frame::IterFrame};
 use eyre::eyre;
-use std::{fmt::Display, path::PathBuf, time::Duration};
+use image::Pixel;
+use std::{fmt::Display, marker::PhantomData, path::PathBuf, time::Duration};
 
 // TODO: move this to a separate file ?
 #[derive(Debug, Clone, Default)]
@@ -23,7 +24,7 @@ impl Display for TimeDuration {
 }
 
 #[derive(Debug, Clone)]
-pub struct Clip {
+pub struct Clip<P> {
     path: PathBuf,
     // Clip informations
     // TODO: create a ClipMetadata to encapsulate everything
@@ -35,9 +36,10 @@ pub struct Clip {
     fps: f32,
     pixel_depth: u8,
     nb_frames: usize,
+    _phantom: PhantomData<P>,
 }
 
-impl Clip {
+impl<P> Clip<P> {
     /// Create a new clip
     fn new(
         path: impl Into<PathBuf>,
@@ -77,6 +79,7 @@ impl Clip {
                 fps,
                 pixel_depth,
                 nb_frames,
+                _phantom: PhantomData,
             })
         };
 
@@ -92,7 +95,10 @@ impl Clip {
     /// FFMpegVideoReader will seek until the `start`, and will stop after
     /// `max_nb_frames`
     /// We pass `max_nb_frames` to `IterFrame` just for the iterator's size hint.
-    pub fn iter_frames(self) -> eyre::Result<IterFrame> {
+    pub fn iter_frames(self) -> eyre::Result<IterFrame<P>>
+    where
+        P: Pixel,
+    {
         let reader = ffmpeg::FFMpegVideoReader::from_file(
             &self.path,
             self.dimensions,
@@ -125,14 +131,15 @@ mod tests {
         let clip = Clip::from_file("/home/zllak/Downloads/newtest.mp4").unwrap();
         let out_path = Path::new("/tmp/out.mp4");
         let mut out =
-            FFMpegVideoWriter::to_file(&out_path.into(), (405, 720), clip.fps, "gray").unwrap();
+            FFMpegVideoWriter::to_file(&out_path.into(), (1080, 1920), clip.fps, "gray").unwrap();
 
         for frame in clip
-            .subclip(TimeDuration::new(00, 00, 20), TimeDuration::new(00, 00, 12))
+            .subclip(TimeDuration::new(00, 00, 20), TimeDuration::new(00, 00, 2))
             .unwrap()
             .iter_frames()
             .unwrap()
             .crop(0, 0, 405, 720)
+            .resize(1080, 1920)
             .grayscale()
         {
             out.write_frame(frame.as_raw()).unwrap();
