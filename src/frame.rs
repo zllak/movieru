@@ -30,7 +30,15 @@ where
         self.data.as_raw()
     }
 
+    /// Returns the underlying image::ImageBuffer, so we can use the image::imageops
+    /// methods.
+    pub(crate) fn image(&self) -> &ImageBuffer<P, Vec<P::Subpixel>> {
+        &self.data
+    }
+
     /// Transforms the current frame using the given function.
+    /// Transformation is applied on pixels, so the format of the frame cannot
+    /// change.
     pub fn transform<F, O>(self, func: F) -> Frame<O>
     where
         F: Fn(&P) -> O,
@@ -43,6 +51,16 @@ where
         }
 
         Frame::from_vec(buffer, (self.width, self.height))
+    }
+
+    /// Map the given frame with the given function.
+    /// This allows for changing the format of the frame.
+    pub fn map<F, O>(self, func: F) -> Frame<O>
+    where
+        F: Fn(Self) -> Frame<O>,
+        O: Pixel<Subpixel = P::Subpixel>,
+    {
+        func(self)
     }
 }
 

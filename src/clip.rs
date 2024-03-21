@@ -122,17 +122,17 @@ mod tests {
 
     #[test]
     fn test() {
-        let clip = Clip::from_file("/home/zllak/Downloads/test.mp4").unwrap();
+        let clip = Clip::from_file("/home/zllak/Downloads/newtest.mp4").unwrap();
         let out_path = Path::new("/tmp/out.mp4");
         let mut out =
-            FFMpegVideoWriter::to_file(&out_path.into(), clip.dimensions, clip.fps, "gray")
-                .unwrap();
+            FFMpegVideoWriter::to_file(&out_path.into(), (405, 720), clip.fps, "gray").unwrap();
 
         for frame in clip
             .subclip(TimeDuration::new(00, 00, 20), TimeDuration::new(00, 00, 12))
             .unwrap()
             .iter_frames()
             .unwrap()
+            .crop(0, 0, 405, 720)
             .grayscale()
         {
             out.write_frame(frame.as_raw()).unwrap();
